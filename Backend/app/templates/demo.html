@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAzMiAzMiI+PGNpcmNsZSBjeD0iMTYiIGN5PSIxNiIgcj0iMTQiIGZpbGw9IiNkMTQ5NWIiLz48L3N2Zz4=">
+<title>PyroScope — MODIS/VIIRS hot spot harmonization</title>
+<style>
+  :root {
+    --ink: #1b2430;
+    --muted: #5b6878;
+    --line: #d8dee6;
+    --bg: #f6f8fa;
+    --panel: #ffffff;
+    --modis: #d1495b;
+    --viirs: #2f6690;
+    --warn: #8a5a00;
+    --warn-bg: #fff6e0;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; padding: 24px;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink); background: var(--bg); line-height: 1.45;
+  }
+  header h1 { margin: 0 0 4px; font-size: 22px; }
+  header p { margin: 0; color: var(--muted); font-size: 13px; }
+  .notice {
+    margin: 16px 0 20px; padding: 10px 14px; border-radius: 8px;
+    background: var(--warn-bg); color: var(--warn);
+    border: 1px solid #f0d9a8; font-size: 13px;
+  }
+  .notice strong { color: #6b4500; }
+  .cards { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+  .card {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px;
+    padding: 12px 14px;
+  }
+  .card .label { font-size: 11px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+  .card .value { font-size: 22px; font-weight: 600; margin-top: 2px; }
+  .card .hint { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .grid { display: grid; gap: 16px; grid-template-columns: minmax(0, 2fr) minmax(240px, 1fr); margin-top: 18px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+  section.panel {
+    background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px;
+    min-width: 0;
+  }
+  section.panel h2 { margin: 0 0 2px; font-size: 15px; }
+  section.panel .source { margin: 0 0 10px; font-size: 11px; color: var(--muted); font-family: ui-monospace, Consolas, monospace; }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th { color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .03em; }
+  tbody tr:last-child td { border-bottom: 0; }
+  .num { text-align: right; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; gap: 14px; flex-wrap: wrap; font-size: 12px; margin-top: 8px; color: var(--muted); }
+  .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 5px; }
+  #map { width: 100%; height: auto; background: #fbfcfd; border: 1px solid var(--line); border-radius: 8px; display: block; }
+  .empty { color: var(--muted); font-size: 12px; padding: 8px 0; }
+  .error { color: #a3192b; font-size: 12px; }
+  .pill { display: inline-block; padding: 1px 7px; border-radius: 999px; font-size: 11px; background: #eef2f6; }
+  code { font-family: ui-monospace, Consolas, monospace; font-size: 11px; }
+  footer { margin-top: 20px; font-size: 11px; color: var(--muted); }
+  footer a { color: var(--viirs); }
+  .stack > * + * { margin-top: 14px; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PyroScope — MODIS / VIIRS hot spot harmonization</h1>
+  <p>NASA Space Apps Cairo 2026 · Challenge #8 · Team <strong>Not Found</strong> · read-only view over the local API</p>
+</header>
+
+<div class="notice">
+  <strong>Reading rules:</strong> the source files contain <em>detections only</em> — a missing row is not
+  evidence of no fire (it may be no observation, an invalid value or a cloud-obstructed pass).
+  MODIS (~1&nbsp;km) and VIIRS (375&nbsp;m) detections are not interchangeable and are never merged.
+  FRP is instantaneous power in MW and is never summed into energy. Agreement between sensors is
+  cross-sensor consistency, <em>not</em> accuracy.
+</div>
+
+<div class="cards" id="cards">
+  <div class="card"><div class="label">Observations</div><div class="value" id="c-total">—</div><div class="hint">detections, all sensors</div></div>
+  <div class="card"><div class="label">MODIS</div><div class="value" id="c-modis">—</div><div class="hint">~1 km pixels</div></div>
+  <div class="card"><div class="label">VIIRS</div><div class="value" id="c-viirs">—</div><div class="hint">375 m pixels</div></div>
+  <div class="card"><div class="label">Anomalies</div><div class="value" id="c-anom">—</div><div class="hint">flagged cell-days</div></div>
+  <div class="card"><div class="label">Harmonized cells</div><div class="value" id="c-harm">—</div><div class="hint">latest run</div></div>
+  <div class="card"><div class="label">Matched pairs</div><div class="value" id="c-pairs">—</div><div class="hint">latest validation run</div></div>
+</div>
+
+<div class="grid">
+  <section class="panel">
+    <h2>Detection sample on a lon/lat plane</h2>
+    <p class="source">GET /api/v1/dashboard/map?limit=1000</p>
+    <svg id="map" viewBox="0 0 720 440" role="img" aria-label="Scatter plot of sampled detections by longitude and latitude"></svg>
+    <div class="legend">
+      <span><span class="dot" style="background: var(--modis)"></span>MODIS</span>
+      <span><span class="dot" style="background: var(--viirs)"></span>VIIRS</span>
+      <span><span class="dot" style="background: none; border: 2px solid #7a5c00"></span>flagged anomaly cell</span>
+      <span id="map-note"></span>
+    </div>
+  </section>
+
+  <div class="stack">
+    <section class="panel">
+      <h2>Anomaly severity</h2>
+      <p class="source">GET /api/v1/dashboard/anomalies</p>
+      <div id="severity"></div>
+    </section>
+    <section class="panel">
+      <h2>Top harmonized cells</h2>
+      <p class="source">GET /api/v1/dashboard/activity-index?limit=8</p>
+      <div id="activity"></div>
+    </section>
+  </div>
+</div>
+
+<div class="grid">
+  <section class="panel">
+    <h2>Sensor comparison</h2>
+    <p class="source">GET /api/v1/dashboard/sensor-comparison</p>
+    <div id="sensors"></div>
+  </section>
+  <section class="panel">
+    <h2>Exports</h2>
+    <p class="source">GET /api/v1/exports/history?limit=10</p>
+    <div id="exports"></div>
+  </section>
+</div>
+
+<footer>
+  Every panel is fetched from the API at page load; nothing is recomputed in the browser.
+  Time basis is UTC as recorded by the products (timezone verification still pending, see
+  <code>docs/dataset-facts.md §2</code>). Full endpoint status:
+  <code>docs/api-endpoints.md</code>. API root: <code>/api/v1</code>.
+</footer>
+
+<script>
+const API = "/api/v1";
+const MODIS = "#d1495b";
+const VIIRS = "#2f6690";
+
+const fmt = (value) => {
+  if (value === null || value === undefined || value === "") return "—";
+  if (typeof value === "number") {
+    return Number.isInteger(value) ? value.toLocaleString() : value.toFixed(2);
+  }
+  return String(value);
+};
+
+const esc = (value) =>
+  String(value === null || value === undefined ? "" : value)
+    .replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;");
+
+async function api(path) {
+  const response = await fetch(API + path);
+  const body = await response.json();
+  if (!response.ok) {
+    const error = body && body.error ? body.error : { code: "error", message: "request failed" };
+    throw new Error(error.code + ": " + error.message);
+  }
+  return body.data;
+}
+
+function showError(element, message) {
+  element.innerHTML = '<p class="error">Unavailable — ' + esc(message) + "</p>";
+}
+
+function table(headers, rows, numericColumns = []) {
+  if (!rows.length) return '<p class="empty">No rows.</p>';
+  const head = headers.map((h) => "<th>" + esc(h) + "</th>").join("");
+  const body = rows
+    .map((row) =>
+      "<tr>" + row.map((cell, index) =>
+        '<td class="' + (numericColumns.includes(index) ? "num" : "") + '">' + cell + "</td>"
+      ).join("") + "</tr>"
+    )
+    .join("");
+  return "<table><thead><tr>" + head + "</tr></thead><tbody>" + body + "</tbody></table>";
+}
+
+function setText(id, value) {
+  const element = document.getElementById(id);
+  if (element) element.textContent = value;
+}
+
+async function loadOverview() {
+  try {
+    const data = await api("/dashboard/overview");
+    setText("c-total", fmt(data.observations.detections));
+    const perSensor = Object.fromEntries((data.per_sensor || []).map((row) => [row.sensor, row]));
+    setText("c-modis", fmt((perSensor.modis || {}).detections));
+    setText("c-viirs", fmt((perSensor.viirs || {}).detections));
+    setText("c-anom", data.anomalies.available ? fmt(data.anomalies.count) : "no run");
+    setText("c-harm", data.harmonization.available ? fmt(data.harmonization.count) : "no run");
+    setText("c-pairs", data.validation.available ? fmt(data.validation.n_pairs) : "no run");
+  } catch (error) {
+    ["c-total", "c-modis", "c-viirs", "c-anom", "c-harm", "c-pairs"].forEach((id) => setText(id, "—"));
+    console.error(error);
+  }
+}
+
+function drawMap(payload) {
+  const svg = document.getElementById("map");
+  const observations = payload.observations || [];
+  const anomalies = payload.anomalies || [];
+  if (!observations.length) {
+    svg.insertAdjacentHTML("afterend", '<p class="empty">No sampled points to draw.</p>');
+    return;
+  }
+
+  const W = 720, H = 440, PAD = 28;
+  const lons = observations.map((p) => p.lon);
+  const lats = observations.map((p) => p.lat);
+  const minLon = Math.min(...lons), maxLon = Math.max(...lons);
+  const minLat = Math.min(...lats), maxLat = Math.max(...lats);
+  const meanLat = (minLat + maxLat) / 2 * Math.PI / 180;
+  const cosLat = Math.max(Math.cos(meanLat), 0.2);
+
+  // Equirectangular scaling so 1 degree of longitude is shorter than 1 degree of latitude.
+  const spanX = Math.max((maxLon - minLon) * cosLat, 1e-6);
+  const spanY = Math.max(maxLat - minLat, 1e-6);
+  const scale = Math.min((W - 2 * PAD) / spanX, (H - 2 * PAD) / spanY);
+  const offsetX = (W - spanX * scale) / 2;
+  const offsetY = (H - spanY * scale) / 2;
+
+  const px = (lon) => offsetX + (lon - minLon) * cosLat * scale;
+  const py = (lat) => H - offsetY - (lat - minLat) * scale;
+
+  const dots = observations
+    .map((point) => {
+      const color = String(point.sensor).toLowerCase() === "modis" ? MODIS : VIIRS;
+      const title = point.sensor + " · " + point.datetime_utc + " · FRP " + fmt(point.frp_mw) + " MW";
+      return '<circle cx="' + px(point.lon).toFixed(1) + '" cy="' + py(point.lat).toFixed(1) +
+        '" r="1.8" fill="' + color + '" fill-opacity="0.75"><title>' + esc(title) + "</title></circle>";
+    })
+    .join("");
+
+  const rings = anomalies
+    .map((point) => {
+      const title = "anomaly · " + point.sensor + " · " + point.day + " · z " + fmt(point.robust_z);
+      return '<circle cx="' + px(point.lon).toFixed(1) + '" cy="' + py(point.lat).toFixed(1) +
+        '" r="4.5" fill="none" stroke="#7a5c00" stroke-width="1.4"><title>' + esc(title) + "</title></circle>";
+    })
+    .join("");
+
+  svg.innerHTML =
+    '<rect x="' + (offsetX - 6) + '" y="' + (offsetY - 6) + '" width="' +
+    (spanX * scale + 12).toFixed(1) + '" height="' + (spanY * scale + 12).toFixed(1) +
+    '" fill="none" stroke="#c9d2dc" stroke-dasharray="4 4"></rect>' +
+    dots + rings +
+    '<text x="' + (W / 2) + '" y="' + (H - 6) + '" text-anchor="middle" font-size="11" fill="#5b6878">longitude (deg E)</text>' +
+    '<text x="12" y="' + (H / 2) + '" text-anchor="middle" font-size="11" fill="#5b6878" transform="rotate(-90 12 ' + (H / 2) + ')">latitude (deg N)</text>';
+
+  document.getElementById("map-note").textContent =
+    observations.length + " sampled detections · lon " + minLon.toFixed(2) + "–" + maxLon.toFixed(2) +
+    " · lat " + minLat.toFixed(2) + "–" + maxLat.toFixed(2) + " · no basemap";
+}
+
+async function loadMap() {
+  try {
+    drawMap(await api("/dashboard/map?limit=1000"));
+  } catch (error) {
+    showError(document.getElementById("map").parentElement, error.message);
+  }
+}
+
+async function loadSeverity() {
+  const element = document.getElementById("severity");
+  try {
+    const data = await api("/dashboard/anomalies");
+    if (!data.available) {
+      element.innerHTML = '<p class="empty">No anomaly run stored yet. Availability is reported, not invented.</p>';
+      return;
+    }
+    const bands = (data.severity && data.severity.bands) || [];
+    const rows = bands.map((band) => [
+      esc(band.severity),
+      fmt(band.anomalies),
+      fmt(band.cells),
+      fmt(band.max_robust_z),
+    ]);
+    element.innerHTML = table(["Severity", "Flagged", "Cells", "Max z"], rows, [1, 2, 3]) +
+      '<p class="empty">A flagged cell-day is a statistical outlier in daily counts for one sensor, not a confirmed fire.</p>';
+  } catch (error) {
+    showError(element, error.message);
+  }
+}
+
+async function loadActivity() {
+  const element = document.getElementById("activity");
+  try {
+    const data = await api("/dashboard/activity-index?limit=8");
+    const rows = (data.cells || []).map((cell) => [
+      "<code>" + esc(cell.cell_id) + "</code>",
+      esc(cell.time_bucket),
+      fmt(cell.sensors_present),
+      fmt(cell.modis_count),
+      fmt(cell.viirs_count),
+      fmt(cell.harmonized_activity_index),
+    ]);
+    element.innerHTML = table(
+      ["Cell", "Bucket", "Sensors", "MODIS", "VIIRS", "Index"], rows, [2, 3, 4, 5]
+    ) + '<p class="empty">Index is unitless and relative to the run’s own p95 scales.</p>';
+  } catch (error) {
+    showError(element, error.message);
+  }
+}
+
+async function loadSensors() {
+  const element = document.getElementById("sensors");
+  try {
+    const data = await api("/dashboard/sensor-comparison");
+    const rows = (data.sensors || []).map((sensor) => [
+      esc(sensor.sensor).toUpperCase(),
+      fmt(sensor.detections),
+      fmt(sensor.distinct_days),
+      fmt(sensor.median_frp_mw) + " MW",
+      fmt(sensor.max_frp_mw) + " MW",
+    ]);
+    let html = table(
+      ["Sensor", "Detections", "Days", "Median FRP", "Max FRP"], rows, [1, 2, 3, 4]
+    );
+    if (data.agreement) {
+      const log = data.agreement.log10_frp || {};
+      html += '<p class="empty">Latest matched-pair snapshot (' + esc(data.agreement.run_id) + ", " +
+        fmt(data.agreement.n_pairs) + " pairs): log10 FRP MAE " + fmt(log.mae) +
+        " dex, bias " + fmt(log.bias) + " dex — cross-sensor consistency, not accuracy against true fire occurrence.</p>";
+    } else {
+      html += '<p class="empty">No validation run stored yet.</p>';
+    }
+    element.innerHTML = html;
+  } catch (error) {
+    showError(element, error.message);
+  }
+}
+
+async function loadExports() {
+  const element = document.getElementById("exports");
+  try {
+    const data = await api("/exports/history?limit=10");
+    if (!data.length) {
+      element.innerHTML = '<p class="empty">No exports yet. Create one with POST /api/v1/exports/observations.</p>';
+      return;
+    }
+    const rows = data.map((record) => {
+      const file = (record.files || []).find((item) => item.name !== "metadata.json") || (record.files || [])[0];
+      const link = file
+        ? '<a href="' + esc(file.download_url) + '">' + esc(file.name) + "</a>"
+        : "—";
+      return [
+        "<code>" + esc(record.export_id) + "</code>",
+        esc(record.kind),
+        fmt(record.row_count),
+        esc((record.created_at || "").replace("T", " ").slice(0, 19)),
+        link,
+      ];
+    });
+    element.innerHTML = table(["Export", "Kind", "Rows", "Created (UTC)", "File"], rows, [2]);
+  } catch (error) {
+    showError(element, error.message);
+  }
+}
+
+loadOverview();
+loadMap();
+loadSeverity();
+loadActivity();
+loadSensors();
+loadExports();
+</script>
+</body>
+</html>

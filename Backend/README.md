@@ -1,116 +1,191 @@
-# PyroScope — Satellite Active Fire Harmonization & Analytics Engine
+# PyroScope — MODIS/VIIRS Hot Spot Harmonization
 
-Backend API service built with Flask for the **PyroScope** fire monitoring and sensor harmonization project (NASA Space Apps / Earth Observation).
+NASA Space Apps Cairo 2026 · Challenge #8 · Team **Not Found**
 
-Designed specifically for high-speed scientific data processing, statistical calibration between **MODIS** and **VIIRS**, and real-time dashboard analytics without heavy relational database or authentication overhead.
+Harmonization of MODIS (~1 km) and VIIRS (375 m) active-fire detections without
+inventing information. Read `AGENTS.md` first, then:
 
----
+- `docs/api-endpoints.md` — 83 non-auth endpoints, implementation status per slice
+- `docs/dataset-facts.md` — what the sample data actually contains (and what still needs verification)
+- `docs/architecture.md` — package layout, data flow and API plan
+- `docs/decisions.md` — decision log
+- `docs/phases/` — one file per phase
 
-## 🚀 Key Architectural Highlights
+## Current status
 
-1. **No External Database Overhead (Embedded DuckDB Analytics)**:
-   - Uses **DuckDB** as an embedded analytical (OLAP) engine directly in `data/analytics.duckdb`.
-   - Delivers lightning-fast aggregation, spatial queries, and statistical computation over millions of satellite observation records without requiring PostgreSQL or MySQL.
-2. **No Authentication Gate**:
-   - Clean, open RESTful APIs tailored for rapid hackathon frontend dashboard consumption.
-3. **Modular Blueprints Architecture**:
-   - Clean 1-to-1 mapping matching the PyroScope API Reference specification.
-   - Strict separation of concerns between endpoints (`app/api`), business/ML services (`app/services`), and analytical storage (`app/storage`).
-4. **Asynchronous In-Memory Job Manager**:
-   - Provides background task execution, status tracking, cancellation, and logs via `/api/jobs` and `/api/processing/jobs`.
+**Slices A + B + C + D + E implemented and verified against the full sample
+files**: ingestion, observations, processing, harmonization, validation,
+anomalies, analytics, dashboard, exports and jobs (83 non-auth endpoints),
+backed by DuckDB. No authentication endpoints (excluded by request). A
+dependency-free demo page at `GET /demo` renders the live API in the browser.
 
----
+| Verified on the real files | Value |
+|---|---|
+| MODIS rows imported | 18,432 |
+| VIIRS rows imported | 79,148 |
+| Observations total | 97,580 |
+| MODIS median FRP | 16.0 MW |
+| VIIRS median FRP | 4.55 MW |
+| QC flags (provisional) | invalid_ti4 3 · low_confidence 18,263 · night_detection 6,374 · type_nonzero 112 |
+| 25 km grid | 28 × 14 = 392 cells, area distortion 1.77% |
+| Aggregation | 457 cell×sensor rows, all 97,580 detections assigned |
+| Spatial links (1.5 km, 2 h, cap 10) | 25,929 pairs, not truncated |
+| Ratio calibration (1.5 km, 2 h) | factor 3.045, RMSE 79.6 MW on 25,929 pairs |
+| Linear calibration | slope 1.034, intercept 32.43 MW, R² 0.060 |
+| Harmonization run (25 km, daily, ratio) | 15,337 cell×day rows, 3,967 with both sensors |
+| Cross-sensor log10 FRP | MAE 0.555 dex · RMSE 0.670 dex · bias +0.503 dex |
+| Activity index | mean 0.309, max 1.0 (unitless, run-relative) |
+| Anomaly run (25 km grid, defaults) | 457 cell×sensor series · 442 evaluated · 19,277 cell-days |
+| Flagged anomalies | 1,505 (637 moderate · 413 high · 455 extreme) in 205 cells, 128 days |
+| Analytics | 12 monthly buckets per sensor · 4 data-extent regions · yearly `trend_claim: false` |
+| Dashboard | reads the stored runs above (1,505 anomalies · 15,337 cell-days · 25,929 pairs) |
+| Exports | 97,580 observations · 15,337 harmonized rows · 25,929 pairs · 1,505 anomalies as CSV + `metadata.json` |
+| Demo page (`/demo`) | reads the live API: sensor cards, lon/lat sample (1,000 points), severity bands, top cells, export history |
 
-## 📁 Project Structure
+The low R² and the +0.50 dex bias are real sample properties, not tuning
+failures: MODIS and VIIRS do not agree on this dataset. No scientific parameter
+is decided yet: every value in `config/default.yaml` that needs justification is
+still `null`. FRP is reported as instantaneous power (MW) and never summed into
+energy. Time is labelled **UTC (verified via FIRMS documentation 2026-11-17)**.
+Confidence harmonization maps official VIIRS `l/n/h` exactly and labels MODIS
+numeric bands as **heuristic** (FIRMS defines the classes but publishes no numeric
+cut-offs). See `docs/decisions.md` for sources.
 
-```text
-Backend/
-│
-├── run.py                       # Server entry point
-├── requirements.txt             # Core Python dependencies
-├── README.md                    # Documentation
-│
-├── app/
-│   ├── __init__.py              # Application Factory & Blueprint Registration & CORS
-│   ├── config.py                # Environment configurations & paths
-│   │
-│   ├── api/                     # REST API Blueprints (10 Modules)
-│   │   ├── ingestion.py         # 1. Data Ingestion (/api/ingestion)
-│   │   ├── observations.py      # 2. Observations (/api/observations)
-│   │   ├── processing.py        # 3. Data Processing (/api/processing)
-│   │   ├── harmonization.py     # 4. Sensor Harmonization (/api/harmonization)
-│   │   ├── validation.py        # 5. Validation (/api/validation)
-│   │   ├── anomalies.py         # 6. Anomaly Detection (/api/anomalies)
-│   │   ├── analytics.py         # 7. Analytics (/api/analytics)
-│   │   ├── dashboard.py         # 8. Dashboard (/api/dashboard)
-│   │   ├── exports.py           # 9. Exports (/api/exports)
-│   │   └── jobs.py              # 10. Background Jobs (/api/jobs)
-│   │
-│   ├── services/                # Business Logic, ML Models & Calibration
-│   │   ├── ingestion_service.py
-│   │   ├── processing_service.py
-│   │   ├── harmonization_service.py
-│   │   ├── validation_service.py
-│   │   ├── anomaly_service.py
-│   │   ├── analytics_service.py
-│   │   ├── export_service.py
-│   │   └── job_manager.py
-│   │
-│   ├── storage/                 # High-performance analytical storage
-│   │   └── analytics_db.py      # DuckDB connection and SQL views
-│   │
-│   └── utils/                   # Helpers
-│       ├── response_helper.py   # Standardized JSON response envelope
-│       └── geo_helpers.py       # Haversine distance & spatial bounding
-│
-├── data/                        # Local data directory
-│   ├── raw/                     # Uploaded raw CSV / JSON data
-│   ├── processed/               # Harmonized / cleaned outputs
-│   ├── exports/                 # Generated export files for download
-│   └── analytics.duckdb         # Embedded DuckDB database
-│
-├── scripts/
-│   └── seed_demo_data.py        # Generates sample MODIS & VIIRS active fire data
-│
-└── tests/
-    └── test_api.py              # Smoke tests for API health and routes
+## Layout
+
+```
+config/default.yaml     configuration (placeholders + infrastructure paths)
+dataSets/               READ-ONLY raw sample files (never modified)
+data/interim/           uploads, working outputs
+data/processed/         pyroscope.duckdb + run outputs + exports
+src/harmonizer/         science + storage package (no Flask imports)
+app/                    Flask app factory (thin layer)
+app/templates/demo.html demo page (static, no build step, no CDN)
+scripts/demo_run.py     one-command end-to-end demo (API-only)
+tests/                  pytest (127 tests)
+docs/                   endpoints, facts, architecture, phases, decisions
 ```
 
----
+## Setup
 
-## 🛠️ Getting Started
-
-### 1. Install Dependencies
 ```bash
-py -m pip install -r requirements.txt
+pip install -e ".[dev]"
 ```
 
-### 2. Populate Sample Data (Optional for testing)
+## Run
+
 ```bash
-py -m scripts.seed_demo_data
+python -m flask --app app run
 ```
 
-### 3. Run the Server
+Then:
+
 ```bash
-py run.py
+curl http://127.0.0.1:5000/health
 ```
-Server runs by default on `http://localhost:5000`.
 
----
+Open <http://127.0.0.1:5000/demo> for the dashboard. It needs no internet
+connection and no build step: the page is static HTML/CSS/JS and only calls the
+local API. Every panel shows the endpoint it reads, and a panel with no stored
+run says so instead of inventing values.
 
-## 📡 API Endpoints Overview
+### One-command demo run
 
-| Blueprint | Route Prefix | Key Functionality |
-| :--- | :--- | :--- |
-| **Ingestion** | `/api/ingestion` | Import MODIS/VIIRS, upload files, sync status |
-| **Observations**| `/api/observations` | View observations, filter by bounding box, date, sensor |
-| **Processing** | `/api/processing` | Clean data, generate spatial grid, spatial/temporal matching |
-| **Harmonization**| `/api/harmonization`| Calibrate (Ratio, Linear Regression, Quantile, Random Forest) |
-| **Validation** | `/api/validation` | MAE, RMSE, Bias, Correlation metrics, distribution analysis |
-| **Anomalies** | `/api/anomalies` | Statistical anomaly detection, severity classification |
-| **Analytics** | `/api/analytics` | Hotspot trends, FRP trends, Land-cover & regional stats |
-| **Dashboard** | `/api/dashboard` | Aggregated payloads for frontend dashboard charts & maps |
-| **Exports** | `/api/exports` | Export to CSV and download reports |
-| **Jobs** | `/api/jobs` | Background task status, cancellation, and logs |
-| **Health** | `/api/health` | Service and analytical engine status check |
+```bash
+python -m scripts.demo_run
+```
 
+This rebuilds the demonstrable state through the public API only:
+`ingest -> grid -> harmonize (ratio) -> validate -> detect anomalies -> export`.
+It reuses an existing grid with the same cell size, imports are idempotent by
+SHA-256, and every run/export is a new record. A manifest with the created ids
+and the applicable limitations is written to `data/processed/demo_manifest.json`.
+
+Useful flags: `--grid-km`, `--radius-m`, `--time-window-h`, `--file` (repeatable),
+`--new-grid`, `--no-exports`, `--manifest`, `--config`.
+
+```bash
+curl -X POST http://127.0.0.1:5000/api/v1/ingestion/sources/import/modis \
+  -H "Content-Type: application/json" \
+  -d '{"path": "dataSets/modis_2012_Benin.csv"}'
+
+curl -X POST http://127.0.0.1:5000/api/v1/ingestion/sources/import/viirs \
+  -H "Content-Type: application/json" \
+  -d '{"path": "dataSets/viirs-snpp_2012_Benin.csv"}'
+
+curl "http://127.0.0.1:5000/api/v1/observations/statistics"
+curl "http://127.0.0.1:5000/api/v1/observations?min_frp=100&limit=10"
+curl "http://127.0.0.1:5000/api/v1/observations/by-region"
+curl "http://127.0.0.1:5000/api/v1/jobs"
+
+# Processing (non-destructive)
+curl -X POST http://127.0.0.1:5000/api/v1/processing/clean \
+  -H "Content-Type: application/json" -d '{"dry_run": false}'
+
+curl -X POST http://127.0.0.1:5000/api/v1/processing/grid/generate \
+  -H "Content-Type: application/json" -d '{"cell_km": 25, "name": "benin-25km"}'
+
+curl -X POST http://127.0.0.1:5000/api/v1/processing/aggregate \
+  -H "Content-Type: application/json" \
+  -d '{"grid_id": "<grid_id>", "time_bucket": "day"}'
+
+curl -X POST http://127.0.0.1:5000/api/v1/processing/spatial-matching \
+  -H "Content-Type: application/json" \
+  -d '{"radius_m": 1500, "time_window_h": 2}'
+
+# Harmonization (cross-sensor mapping, never ground truth)
+curl -X POST http://127.0.0.1:5000/api/v1/harmonization/calibrate/ratio \
+  -H "Content-Type: application/json" \
+  -d '{"radius_m": 1500, "time_window_h": 2}'
+
+curl -X POST http://127.0.0.1:5000/api/v1/harmonization/run \
+  -H "Content-Type: application/json" \
+  -d '{"grid_id": "<grid_id>", "time_bucket": "day", "method": "ratio", "radius_m": 1500, "time_window_h": 2}'
+
+curl "http://127.0.0.1:5000/api/v1/harmonization/activity-index?limit=10"
+
+# Validation (cross-sensor consistency, not accuracy)
+curl -X POST http://127.0.0.1:5000/api/v1/validation/run \
+  -H "Content-Type: application/json" \
+  -d '{"radius_m": 1500, "time_window_h": 2}'
+
+curl "http://127.0.0.1:5000/api/v1/validation/metrics/mae"
+curl "http://127.0.0.1:5000/api/v1/validation/temporal"
+
+# Anomalies (statistical outliers on daily per-cell counts, per sensor)
+curl -X POST http://127.0.0.1:5000/api/v1/anomalies/detect \
+  -H "Content-Type: application/json" \
+  -d '{"grid_id": "<grid_id>"}'
+
+curl "http://127.0.0.1:5000/api/v1/anomalies/statistics"
+curl "http://127.0.0.1:5000/api/v1/anomalies/severity"
+curl "http://127.0.0.1:5000/api/v1/anomalies/by-date"
+
+# Analytics and dashboard (sensors stay separate; FRP stays MW)
+curl "http://127.0.0.1:5000/api/v1/analytics/overview"
+curl "http://127.0.0.1:5000/api/v1/analytics/frp-trends?granularity=month"
+curl "http://127.0.0.1:5000/api/v1/dashboard/overview"
+curl "http://127.0.0.1:5000/api/v1/dashboard/activity-index?limit=10"
+
+# Exports (new files + metadata.json; stored data is never modified)
+curl -X POST http://127.0.0.1:5000/api/v1/exports/observations \
+  -H "Content-Type: application/json" -d '{"sensor": "modis"}'
+
+curl -X POST http://127.0.0.1:5000/api/v1/exports/harmonized-data \
+  -H "Content-Type: application/json" -d '{}'
+
+curl -X POST http://127.0.0.1:5000/api/v1/exports/validation-report \
+  -H "Content-Type: application/json" -d '{"include_pairs": true}'
+
+curl -X POST http://127.0.0.1:5000/api/v1/exports/csv \
+  -H "Content-Type: application/json" -d '{"source": "anomalies"}'
+
+curl "http://127.0.0.1:5000/api/v1/exports/history"
+curl -OJ "http://127.0.0.1:5000/api/v1/exports/<export_id>?download=true"
+```
+
+## Test
+
+```bash
+python -m pytest
+```

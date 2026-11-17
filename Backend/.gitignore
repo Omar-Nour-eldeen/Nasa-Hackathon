@@ -1,18 +1,33 @@
+# Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.env
+*.egg-info/
+.eggs/
+build/
+dist/
+
+# Environments
 .venv/
 venv/
-ENV/
-.idea/
-.vscode/
-data/raw/*
-!data/raw/.gitkeep
-data/processed/*
-!data/processed/.gitkeep
-data/exports/*
-!data/exports/.gitkeep
-data/*.duckdb
-data/*.duckdb.wal
+.env
 
+# Test / tooling caches
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Generated pipeline outputs (raw data is tracked separately / read-only)
+data/interim/*
+data/processed/*
+!data/interim/.gitkeep
+!data/processed/.gitkeep
+# Trimmed read-only snapshot shipped with the Vercel API deployment.
+!data/processed/pyroscope_trimmed.duckdb
