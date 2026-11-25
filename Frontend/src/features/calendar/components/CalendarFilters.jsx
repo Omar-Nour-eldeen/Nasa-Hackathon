@@ -12,13 +12,13 @@ export default function CalendarFilters({
   baselineAvailable,
 }) {
   const selectClass =
-    "w-full rounded-lg border border-(--border-color) bg-(--surface-secondary) p-2.5 text-sm";
+    "w-full min-w-0 rounded-lg border border-(--border-color) bg-(--surface-secondary) p-2.5 text-sm";
 
   return (
-    <section className="rounded-xl border border-(--border-color) bg-(--surface) p-5">
-      <div className="flex flex-wrap items-end gap-4">
-        <div className="min-w-44 flex-1">
-          <label className="mb-2 block text-sm text-(--text-secondary)">Country</label>
+    <section className="rounded-xl border border-(--border-color) bg-(--surface) p-4 sm:p-5">
+      <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="min-w-0">
+          <label className="mb-1.5 block text-sm text-(--text-secondary)">Country</label>
           <select
             value={region}
             onChange={(event) => onRegionChange(event.target.value)}
@@ -36,8 +36,8 @@ export default function CalendarFilters({
           </select>
         </div>
 
-        <div className="min-w-32 flex-1">
-          <label className="mb-2 block text-sm text-(--text-secondary)">From year</label>
+        <div className="min-w-0">
+          <label className="mb-1.5 block text-sm text-(--text-secondary)">From year</label>
           <select
             value={startYear ?? ""}
             onChange={(event) => onStartYearChange(Number(event.target.value))}
@@ -49,8 +49,8 @@ export default function CalendarFilters({
           </select>
         </div>
 
-        <div className="min-w-32 flex-1">
-          <label className="mb-2 block text-sm text-(--text-secondary)">To year</label>
+        <div className="min-w-0">
+          <label className="mb-1.5 block text-sm text-(--text-secondary)">To year</label>
           <select
             value={endYear ?? ""}
             onChange={(event) => onEndYearChange(Number(event.target.value))}
@@ -62,8 +62,8 @@ export default function CalendarFilters({
           </select>
         </div>
 
-        <div className="min-w-48 flex-1">
-          <label className="mb-2 block text-sm text-(--text-secondary)">Activity metric</label>
+        <div className="min-w-0">
+          <label className="mb-1.5 block text-sm text-(--text-secondary)">Activity metric</label>
           <select
             value={metric}
             onChange={(event) => onMetricChange(event.target.value)}

@@ -24,19 +24,19 @@ export default function MonthSummary({ data, dailyStats }) {
   ];
 
   return (
-    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <section className="grid grid-cols-2 gap-3 xl:grid-cols-4">
       {cards.map((card) => (
         <div
           key={card.label}
-          className="rounded-xl border border-(--border-color) bg-(--surface) p-4"
+          className="min-w-0 rounded-xl border border-(--border-color) bg-(--surface) p-3.5 sm:p-4"
         >
           <p className="text-xs text-(--text-secondary)">{card.label}</p>
-          <p className="mt-2 text-xl font-bold">{card.value}</p>
+          <p className="mt-1.5 break-words text-lg font-bold sm:mt-2 sm:text-xl">{card.value}</p>
         </div>
       ))}
 
       {dailyStats?.perSensor && (
-        <div className="rounded-xl border border-(--border-color) bg-(--surface-secondary) p-4 sm:col-span-2 xl:col-span-4">
+        <div className="col-span-2 rounded-xl border border-(--border-color) bg-(--surface-secondary) p-3.5 sm:p-4 xl:col-span-4">
           <p className="text-xs leading-5 text-(--text-secondary)">
             {Object.entries(dailyStats.perSensor)
               .map(([sensor, days]) => `${sensorLabel(sensor)}: ${days} days`)

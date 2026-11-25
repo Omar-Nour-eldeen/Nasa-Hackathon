@@ -62,17 +62,17 @@ function pivotByBucket(rows = []) {
 
 function SensorCard({ sensor }) {
   return (
-    <div className="flex items-center gap-3 rounded-xl border border-(--border-color) bg-(--surface-secondary) p-4">
-      <div className="rounded-lg bg-(--surface) p-3">
+    <div className="flex items-start gap-3 rounded-xl border border-(--border-color) bg-(--surface-secondary) p-3.5 sm:items-center sm:p-4">
+      <div className="shrink-0 rounded-lg bg-(--surface) p-2.5 sm:p-3">
         <Satellite size={21} style={{ color: SENSOR_COLORS[sensor.sensor] }} />
       </div>
 
       <div className="min-w-0 flex-1">
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <p className="text-sm font-semibold">{sensorLabel(sensor.sensor)}</p>
           <Badge variant={sensor.sensor}>{number(sensor.detections)} detections</Badge>
         </div>
-        <p className="mt-1 text-xs text-(--text-secondary)">
+        <p className="mt-1 break-words text-xs text-(--text-secondary)">
           {number(sensor.distinct_days)} days with detections · median FRP{" "}
           {decimal(sensor.median_frp_mw)} MW · max {decimal(sensor.max_frp_mw)} MW
         </p>
@@ -114,25 +114,25 @@ export default function DashboardPage() {
   const severity = anomalies.data?.statistics?.per_severity ?? [];
 
   return (
-    <div className="space-y-7">
-      <section className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold tracking-tight">Overview</h2>
+    <div className="space-y-5 sm:space-y-7">
+      <section className="flex flex-wrap items-center justify-between gap-3 sm:gap-4">
+        <div className="min-w-0">
+          <h2 className="text-xl font-bold tracking-tight sm:text-2xl">Overview</h2>
           <p className="mt-1 text-sm text-(--text-secondary)">
             Live harmonized fire activity from the PyroScope API.
           </p>
         </div>
 
-        <div className="flex items-center gap-2 rounded-lg border border-(--border-color) bg-(--surface) px-3 py-2">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-500" />
-          <span className="text-xs text-(--text-secondary)">
+        <div className="flex max-w-full items-center gap-2 rounded-lg border border-(--border-color) bg-(--surface) px-3 py-2">
+          <span className="h-2 w-2 shrink-0 animate-pulse rounded-full bg-emerald-500" />
+          <span className="break-words text-xs text-(--text-secondary)">
             API connected · {dateOnly(observations.first_detection_utc)} →{" "}
             {dateOnly(observations.last_detection_utc)}
           </span>
         </div>
       </section>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+      <section className="grid gap-3 sm:grid-cols-2 sm:gap-4 xl:grid-cols-4">
         <StatCard
           title="Fire detections"
           value={number(observations.detections)}
@@ -183,11 +183,11 @@ export default function DashboardPage() {
             <EmptyState title="No trend data" description="Import a source file to populate this chart." />
           )}
           {monthly.length > 0 && (
-            <div className="h-72">
+            <div className="h-60 sm:h-72">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={monthly} margin={{ top: 10, right: 10, left: -18, bottom: 0 }}>
+                <LineChart data={monthly} margin={{ top: 10, right: 10, left: -12, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                  <XAxis dataKey="bucket" tickFormatter={monthLabel} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
+                  <XAxis dataKey="bucket" tickFormatter={monthLabel} minTickGap={20} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
                   <YAxis tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
                   <Tooltip contentStyle={tooltipStyle} labelFormatter={(v) => `${monthLabel(v)} ${String(v).slice(0, 4)}`} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -230,11 +230,11 @@ export default function DashboardPage() {
       <section className="grid gap-5 xl:grid-cols-2">
         <Panel title="Recent activity (last 60 days in the series)" description="Daily detections per sensor.">
           {daily.length > 0 ? (
-            <div className="h-64">
+            <div className="h-56 sm:h-64">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={daily} margin={{ top: 10, right: 10, left: -18, bottom: 0 }}>
+                <LineChart data={daily} margin={{ top: 10, right: 10, left: -12, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                  <XAxis dataKey="bucket" tickFormatter={(v) => String(v).slice(5)} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
+                  <XAxis dataKey="bucket" tickFormatter={(v) => String(v).slice(5)} minTickGap={24} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
                   <YAxis tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
                   <Tooltip contentStyle={tooltipStyle} />
                   <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -252,7 +252,7 @@ export default function DashboardPage() {
           title="Top anomaly cells"
           description="Cells with the most flagged days in the latest run."
           action={
-            <Link to="/map" className="flex items-center gap-1 text-xs font-medium text-orange-500 hover:text-orange-400">
+            <Link to="/map" className="flex items-center gap-1 whitespace-nowrap text-xs font-medium text-orange-500 hover:text-orange-400">
               Explore map <ArrowUpRight size={15} />
             </Link>
           }
@@ -261,24 +261,24 @@ export default function DashboardPage() {
             <EmptyState title="No anomaly cells" />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+              <table className="w-full min-w-105 text-left text-xs">
                 <thead className="text-(--text-secondary)">
                   <tr className="border-b border-(--border-color)">
-                    <th className="py-2 font-medium">Cell</th>
-                    <th className="py-2 font-medium">Sensor</th>
-                    <th className="py-2 text-right font-medium">Anomalies</th>
-                    <th className="py-2 text-right font-medium">Extreme</th>
-                    <th className="py-2 text-right font-medium">Max z</th>
+                    <th className="py-2 pr-2 font-medium whitespace-nowrap">Cell</th>
+                    <th className="px-2 py-2 font-medium whitespace-nowrap">Sensor</th>
+                    <th className="px-2 py-2 text-right font-medium whitespace-nowrap">Anomalies</th>
+                    <th className="px-2 py-2 text-right font-medium whitespace-nowrap">Extreme</th>
+                    <th className="py-2 pl-2 text-right font-medium whitespace-nowrap">Max z</th>
                   </tr>
                 </thead>
                 <tbody>
                   {topCells.map((cell) => (
                     <tr key={`${cell.cell_id}-${cell.sensor}`} className="border-b border-(--border-color)/60 last:border-0">
-                      <td className="py-2 font-mono">{cell.cell_id}</td>
-                      <td className="py-2"><Badge variant={cell.sensor}>{sensorLabel(cell.sensor)}</Badge></td>
-                      <td className="py-2 text-right">{number(cell.anomalies)}</td>
-                      <td className="py-2 text-right">{number(cell.extreme)}</td>
-                      <td className="py-2 text-right">{decimal(cell.max_robust_z, 1)}</td>
+                      <td className="py-2 pr-2 font-mono whitespace-nowrap">{cell.cell_id}</td>
+                      <td className="px-2 py-2 whitespace-nowrap"><Badge variant={cell.sensor}>{sensorLabel(cell.sensor)}</Badge></td>
+                      <td className="px-2 py-2 text-right whitespace-nowrap">{number(cell.anomalies)}</td>
+                      <td className="px-2 py-2 text-right whitespace-nowrap">{number(cell.extreme)}</td>
+                      <td className="py-2 pl-2 text-right whitespace-nowrap">{decimal(cell.max_robust_z, 1)}</td>
                     </tr>
                   ))}
                 </tbody>

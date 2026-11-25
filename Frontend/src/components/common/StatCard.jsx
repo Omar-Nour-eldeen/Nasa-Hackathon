@@ -15,18 +15,18 @@ export default function StatCard({
   };
 
   return (
-    <div className="rounded-xl border border-(--border-color) bg-(--surface) p-5 transition hover:border-orange-500/40">
+    <div className="min-w-0 rounded-xl border border-(--border-color) bg-(--surface) p-4 transition hover:border-orange-500/40 sm:p-5">
       <div className="flex items-center justify-between gap-3">
-        <p className="text-sm text-(--text-secondary)">{title}</p>
+        <p className="min-w-0 text-sm text-(--text-secondary)">{title}</p>
         {Icon && (
-          <div className={`rounded-lg p-2 ${accents[accent] ?? accents.orange}`}>
+          <div className={`shrink-0 rounded-lg p-2 ${accents[accent] ?? accents.orange}`}>
             <Icon size={19} />
           </div>
         )}
       </div>
 
-      <div className="mt-4 flex items-baseline gap-1.5">
-        <p className="text-2xl font-bold tracking-tight">{value}</p>
+      <div className="mt-3 flex flex-wrap items-baseline gap-1.5 sm:mt-4">
+        <p className="break-words text-xl font-bold tracking-tight sm:text-2xl">{value}</p>
         {unit && <span className="text-xs text-(--text-secondary)">{unit}</span>}
       </div>
 
@@ -35,8 +35,8 @@ export default function StatCard({
       )}
 
       {footnote && (
-        <div className="mt-4 border-t border-(--border-color) pt-3">
-          <span className="text-[11px] text-(--text-secondary)">{footnote}</span>
+        <div className="mt-3.5 border-t border-(--border-color) pt-3 sm:mt-4">
+          <span className="break-words text-[11px] text-(--text-secondary)">{footnote}</span>
         </div>
       )}
     </div>

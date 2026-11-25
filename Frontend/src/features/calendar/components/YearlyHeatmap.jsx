@@ -43,28 +43,29 @@ export default function YearlyHeatmap({ data, metric, onMonthSelect, selected })
   }
 
   return (
-    <div className="overflow-x-auto rounded-xl border border-(--border-color) bg-(--surface) p-5">
-      <div className="mb-5">
-        <h3 className="text-lg font-semibold">Yearly fire activity</h3>
+    <div className="rounded-xl border border-(--border-color) bg-(--surface) p-4 sm:p-5">
+      <div className="mb-4 sm:mb-5">
+        <h3 className="text-base font-semibold sm:text-lg">Yearly fire activity</h3>
         <p className="mt-1 text-xs text-(--text-secondary)">
           Displaying: {METRIC_LABELS[metric] ?? metric}. Select a month to open its daily calendar.
         </p>
       </div>
 
-      <div className="min-w-162.5">
-        <div className="mb-3 grid grid-cols-[70px_repeat(12,minmax(0,1fr))] gap-2">
-          <div />
-          {monthNames.map((month) => (
-            <div key={month} className="text-center text-xs font-medium text-(--text-secondary)">
-              {month}
-            </div>
-          ))}
-        </div>
+      <div className="overflow-x-auto pb-1">
+        <div className="min-w-162.5">
+          <div className="mb-3 grid grid-cols-[56px_repeat(12,minmax(0,1fr))] gap-2 sm:grid-cols-[70px_repeat(12,minmax(0,1fr))]">
+            <div className="sticky left-0 z-10 bg-(--surface)" />
+            {monthNames.map((month) => (
+              <div key={month} className="text-center text-xs font-medium text-(--text-secondary)">
+                {month}
+              </div>
+            ))}
+          </div>
 
-        <div className="space-y-3">
-          {years.map((year) => (
-            <div key={year} className="grid grid-cols-[70px_repeat(12,minmax(0,1fr))] items-center gap-2">
-              <span className="text-sm font-semibold">{year}</span>
+          <div className="space-y-3">
+            {years.map((year) => (
+              <div key={year} className="grid grid-cols-[56px_repeat(12,minmax(0,1fr))] items-center gap-2 sm:grid-cols-[70px_repeat(12,minmax(0,1fr))]">
+                <span className="sticky left-0 z-10 bg-(--surface) pr-2 text-sm font-semibold">{year}</span>
 
               {monthNames.map((month, index) => {
                 const monthNumber = index + 1;
@@ -118,12 +119,13 @@ export default function YearlyHeatmap({ data, metric, onMonthSelect, selected })
                   </button>
                 );
               })}
-            </div>
-          ))}
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      <div className="mt-5 flex flex-wrap items-center gap-4 text-[11px] text-(--text-secondary)">
+      <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2 text-[11px] text-(--text-secondary) sm:mt-5">
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded bg-amber-200 dark:bg-amber-950" /> Low
         </span>

@@ -219,9 +219,9 @@ export default function CalendarPage() {
       : "";
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-5 sm:space-y-7">
       <div>
-        <h2 className="text-2xl font-bold">Activity calendar</h2>
+        <h2 className="text-xl font-bold sm:text-2xl">Activity calendar</h2>
         <p className="mt-1 text-sm text-(--text-secondary)">
           Harmonized burning calendar built from the stored MODIS and VIIRS detections.
         </p>
@@ -324,9 +324,9 @@ export default function CalendarPage() {
           )}
 
           {selectedDay && (
-            <div className="rounded-xl border border-orange-500/30 bg-(--surface) p-5">
+            <div className="rounded-xl border border-orange-500/30 bg-(--surface) p-4 sm:p-5">
               <h3 className="font-semibold">Selected day: {selectedDay.date}</h3>
-              <div className="mt-3 grid gap-3 sm:grid-cols-3">
+              <div className="mt-3 grid grid-cols-2 gap-3 sm:grid-cols-3">
                 <div>
                   <p className="text-xs text-(--text-secondary)">MODIS detections</p>
                   <p className="text-lg font-bold">{number(selectedDay.modis)}</p>
@@ -335,7 +335,7 @@ export default function CalendarPage() {
                   <p className="text-xs text-(--text-secondary)">VIIRS detections</p>
                   <p className="text-lg font-bold">{number(selectedDay.viirs)}</p>
                 </div>
-                <div>
+                <div className="col-span-2 sm:col-span-1">
                   <p className="text-xs text-(--text-secondary)">Total</p>
                   <p className="text-lg font-bold">{number(selectedDay.total)}</p>
                 </div>

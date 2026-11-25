@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { SlidersHorizontal, X } from "lucide-react";
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
 import "./gis.css";
@@ -219,6 +220,7 @@ export default function GisMapPage() {
   const [showLabels, setShowLabels] = useState(true);
   const [showModis, setShowModis] = useState(true);
   const [showViirs, setShowViirs] = useState(true);
+  const [controlsOpen, setControlsOpen] = useState(false);
   const [status, setStatus] = useState({
     state: "idle",
     cells: 0,
@@ -558,7 +560,15 @@ export default function GisMapPage() {
 
     ["mousedown", "touchstart", "wheel"].forEach((ev) => map.on(ev, stopSpin));
 
+    const ro = new ResizeObserver(() => {
+      map.resize();
+    });
+    if (containerRef.current) {
+      ro.observe(containerRef.current);
+    }
+
     return () => {
+      ro.disconnect();
       stopSpin();
       clearTimeout(debounceRef.current);
       abortRef.current?.abort();
@@ -664,6 +674,7 @@ export default function GisMapPage() {
   const handleReplay = () => {
     const map = mapRef.current;
     if (!map) return;
+    setControlsOpen(false);
     abortRef.current?.abort();
     changePhase("intro");
     cellsRef.current = [];
@@ -716,9 +727,31 @@ export default function GisMapPage() {
         </button>
       </div>
 
-      <aside className={`${panelClass} gis-panel--tl`}>
+      {phase === "explore" && !controlsOpen && (
+        <button
+          type="button"
+          className="gis-mobile-toggle"
+          onClick={() => setControlsOpen(true)}
+          aria-label="Open map filters and layers"
+        >
+          <SlidersHorizontal size={15} />
+          <span>Layers &amp; filters</span>
+        </button>
+      )}
+
+      <aside className={`${panelClass} gis-panel--tl ${controlsOpen ? "is-mobile-open" : ""}`}>
         <div className="gis-panel__title">
-          <span className="gis-dot" /> Fire Map
+          <span className="gis-panel__title-main">
+            <span className="gis-dot" /> Fire Map
+          </span>
+          <button
+            type="button"
+            className="gis-panel__close"
+            onClick={() => setControlsOpen(false)}
+            aria-label="Close map filters"
+          >
+            <X size={16} />
+          </button>
         </div>
 
         <div className="gis-seg" role="group" aria-label="Planet look">
@@ -773,7 +806,7 @@ export default function GisMapPage() {
         </button>
       </aside>
 
-      <aside className={`${panelClass} gis-panel--bl`}>
+      <aside className={`${panelClass} gis-panel--bl ${controlsOpen ? "is-hidden-on-mobile" : ""}`}>
         <div className="gis-legend__bar" />
         <div className="gis-legend__labels">
           <span>Few</span>

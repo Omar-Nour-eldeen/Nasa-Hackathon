@@ -92,9 +92,9 @@ export default function ExportPage() {
   }
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-5 sm:space-y-7">
       <div>
-        <h2 className="text-2xl font-bold">Export center</h2>
+        <h2 className="text-xl font-bold sm:text-2xl">Export center</h2>
         <p className="mt-1 text-sm text-(--text-secondary)">
           Press Export and your file downloads immediately. Each ZIP contains the
           data plus a metadata file with the inputs, steps and known limitations.
@@ -102,7 +102,7 @@ export default function ExportPage() {
         </p>
       </div>
 
-      <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+      <section className="grid gap-3.5 sm:grid-cols-2 sm:gap-4 xl:grid-cols-3">
         {EXPORT_ACTIONS.map((action) => {
           const isRunning = running === action.key;
           const isSuccess = feedback.key === action.key && feedback.type === "success";
@@ -112,11 +112,11 @@ export default function ExportPage() {
           return (
             <div
               key={action.key}
-              className="flex flex-col justify-between rounded-xl border border-(--border-color) bg-(--surface) p-5"
+              className="flex min-w-0 flex-col justify-between rounded-xl border border-(--border-color) bg-(--surface) p-4 sm:p-5"
             >
               <div>
                 <div className="flex items-center gap-2">
-                  <FileDown size={17} className="text-orange-500" />
+                  <FileDown size={17} className="shrink-0 text-orange-500" />
                   <h3 className="text-sm font-semibold">{action.title}</h3>
                 </div>
                 <p className="mt-2 text-xs leading-5 text-(--text-secondary)">
@@ -129,7 +129,7 @@ export default function ExportPage() {
                   type="button"
                   disabled={unavailable || isRunning}
                   onClick={() => handleExport(action)}
-                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-3 py-2 text-xs font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="flex w-full items-center justify-center gap-2 rounded-lg bg-orange-500 px-3 py-2.5 text-xs font-semibold text-white transition hover:bg-orange-600 disabled:cursor-not-allowed disabled:opacity-60 sm:py-2"
                 >
                   {unavailable ? <Info size={14} /> : isRunning ? <Loader2 size={14} className="animate-spin" /> : <Download size={14} />}
                   {unavailable ? "Unavailable in demo" : isRunning ? "Preparing file…" : "Export"}

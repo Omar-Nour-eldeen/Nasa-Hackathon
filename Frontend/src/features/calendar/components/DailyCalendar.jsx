@@ -28,18 +28,19 @@ export default function DailyCalendar({ year, month, data, onDaySelect, selected
   }
 
   return (
-    <section className="rounded-xl border border-(--border-color) bg-(--surface) p-5">
-      <div className="mb-5 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-lg font-semibold">Daily activity — {month}/{year}</h3>
+    <section className="rounded-xl border border-(--border-color) bg-(--surface) p-3.5 sm:p-5">
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-2 sm:mb-5">
+        <h3 className="text-base font-semibold sm:text-lg">Daily activity — {month}/{year}</h3>
         <span className="text-[11px] text-(--text-secondary)">
           {number(data.length)} of {totalDays} days have detections
         </span>
       </div>
 
-      <div className="grid grid-cols-7 gap-2">
+      <div className="grid grid-cols-7 gap-1 sm:gap-2">
         {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((day) => (
-          <div key={day} className="pb-2 text-center text-xs font-medium text-(--text-secondary)">
-            {day}
+          <div key={day} className="pb-1.5 text-center text-[11px] font-medium text-(--text-secondary) sm:pb-2 sm:text-xs">
+            <span className="sm:hidden">{day.slice(0, 2)}</span>
+            <span className="hidden sm:inline">{day}</span>
           </div>
         ))}
 
@@ -64,20 +65,24 @@ export default function DailyCalendar({ year, month, data, onDaySelect, selected
                   : `${date} · no detection recorded (may be no fire or no observation)`
               }
               className={`
-                flex aspect-square min-h-10 flex-col items-center justify-center gap-0.5
-                rounded-lg text-sm font-medium transition ${getDayStyle(item)}
+                flex aspect-square min-h-9 flex-col items-center justify-center gap-0.5
+                rounded-md text-xs font-medium transition sm:min-h-10 sm:rounded-lg sm:text-sm ${getDayStyle(item)}
                 ${item ? "cursor-pointer hover:ring-2 hover:ring-orange-500" : "cursor-not-allowed"}
                 ${isSelected ? "ring-2 ring-orange-500 ring-offset-2 dark:ring-offset-gray-900" : ""}
               `}
             >
               <span>{day}</span>
-              {item && <span className="text-[9px] opacity-80">{number(item.total)}</span>}
+              {item && (
+                <span className="max-w-full truncate px-0.5 text-[8px] leading-none opacity-80 sm:text-[9px]">
+                  {number(item.total)}
+                </span>
+              )}
             </button>
           );
         })}
       </div>
 
-      <div className="mt-5 flex flex-wrap gap-4 text-[11px] text-(--text-secondary)">
+      <div className="mt-4 flex flex-wrap gap-x-4 gap-y-2 text-[11px] text-(--text-secondary) sm:mt-5">
         <span className="flex items-center gap-1.5">
           <span className="h-3 w-3 rounded bg-amber-200 dark:bg-amber-950" /> Few detections
         </span>

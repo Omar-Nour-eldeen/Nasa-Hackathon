@@ -69,10 +69,10 @@ export default function HarmonizedCalendarPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h2 className="text-2xl font-bold">Harmonized activity calendar</h2>
+    <div className="space-y-5 sm:space-y-6">
+      <div className="flex flex-wrap items-start justify-between gap-3 sm:gap-4">
+        <div className="min-w-0">
+          <h2 className="text-xl font-bold sm:text-2xl">Harmonized activity calendar</h2>
           <p className="mt-1 text-sm text-(--text-secondary)">
             One model-produced series, 2005–2025. Observed and estimated months are kept separate.
           </p>
@@ -100,13 +100,13 @@ export default function HarmonizedCalendarPage() {
         title="Monthly series"
         description="Blue outline = backcast year (no VIIRS observations). Cell colour is relative to the largest month shown."
       >
-        <div className="mb-5 flex flex-wrap gap-2">
+        <div className="mb-5 flex flex-wrap items-center gap-2">
           {SCALES.map((option) => (
             <button
               key={option.key}
               type="button"
               onClick={() => setScale(option.key)}
-              className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition-colors ${
+              className={`rounded-lg border px-3 py-2 text-xs font-medium transition-colors sm:py-1.5 ${
                 scale === option.key
                   ? "border-orange-500 bg-orange-500/10 text-orange-500"
                   : "border-(--border-color) text-(--text-secondary) hover:bg-(--surface-secondary)"
@@ -118,7 +118,7 @@ export default function HarmonizedCalendarPage() {
           <select
             value={selectedYear}
             onChange={(event) => setSelectedYear(event.target.value)}
-            className="rounded-lg border border-(--border-color) bg-(--surface) px-3 py-1.5 text-xs"
+            className="w-full rounded-lg border border-(--border-color) bg-(--surface) px-3 py-2 text-xs sm:w-auto sm:py-1.5"
           >
             <option value="all">All years</option>
             {years.map((year) => (
@@ -127,38 +127,54 @@ export default function HarmonizedCalendarPage() {
           </select>
         </div>
 
-        <div className="space-y-3">
-          {byYear.map(([year, months]) => {
-            const estimated = months.size > 0 && [...months.values()].some((row) => row.n_estimate_rows > 0);
-            return (
-              <div key={year} className="grid grid-cols-[4rem_1fr] items-center gap-3">
-                <div className="flex flex-col items-start gap-1">
-                  <span className="text-sm font-semibold">{year}</span>
-                  {estimated && <Badge variant="high">estimate</Badge>}
-                </div>
-                <div className="grid grid-cols-12 gap-1">
-                  {monthNames.map((label, index) => {
-                    const row = months.get(index + 1);
-                    const value = Number(row?.value ?? 0);
-                    const isEstimate = Number(row?.n_estimate_rows ?? 0) > 0;
-                    return (
-                      <div
-                        key={label}
-                        title={`${label} ${year}: ${number(value)}${isEstimate ? " (estimated)" : " (observed)"}`}
-                        className={`flex h-10 items-center justify-center rounded text-[10px] font-medium ${
-                          levelClass(value / maxValue)
-                        } ${isEstimate ? "ring-2 ring-blue-500" : ""}`}
-                      >
-                        {row ? number(value, { notation: "compact", maximumFractionDigits: 1 }) : "—"}
-                      </div>
-                    );
-                  })}
-                </div>
+        <div className="overflow-x-auto pb-1">
+          <div className="min-w-145 space-y-2.5 sm:space-y-3">
+            <div className="grid grid-cols-[4.5rem_1fr] items-center gap-3">
+              <div className="sticky left-0 z-10 bg-(--surface)" />
+              <div className="grid grid-cols-12 gap-1">
+                {monthNames.map((label) => (
+                  <div
+                    key={label}
+                    className="text-center text-[11px] font-medium text-(--text-secondary)"
+                  >
+                    {label}
+                  </div>
+                ))}
               </div>
-            );
-          })}
+            </div>
+
+            {byYear.map(([year, months]) => {
+              const estimated = months.size > 0 && [...months.values()].some((row) => row.n_estimate_rows > 0);
+              return (
+                <div key={year} className="grid grid-cols-[4.5rem_1fr] items-center gap-3">
+                  <div className="sticky left-0 z-10 flex flex-col items-start gap-1 bg-(--surface) pr-2">
+                    <span className="text-sm font-semibold">{year}</span>
+                    {estimated && <Badge variant="high">estimate</Badge>}
+                  </div>
+                  <div className="grid grid-cols-12 gap-1">
+                    {monthNames.map((label, index) => {
+                      const row = months.get(index + 1);
+                      const value = Number(row?.value ?? 0);
+                      const isEstimate = Number(row?.n_estimate_rows ?? 0) > 0;
+                      return (
+                        <div
+                          key={label}
+                          title={`${label} ${year}: ${number(value)}${isEstimate ? " (estimated)" : " (observed)"}`}
+                          className={`flex h-10 items-center justify-center rounded text-[10px] font-medium ${
+                            levelClass(value / maxValue)
+                          } ${isEstimate ? "ring-2 ring-blue-500" : ""}`}
+                        >
+                          {row ? number(value, { notation: "compact", maximumFractionDigits: 1 }) : "—"}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </div>
-        <div className="mt-5 flex gap-4 text-[11px] text-(--text-secondary)">
+        <div className="mt-4 flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-(--text-secondary) sm:mt-5">
           <span>Jan — Apr — Jul — Oct — Dec</span>
           <span>Blue ring = backcast month</span>
         </div>
@@ -166,24 +182,24 @@ export default function HarmonizedCalendarPage() {
 
       <Panel title="Monthly values" description="Separate observed and estimated contributions.">
         <div className="max-h-80 overflow-auto">
-          <table className="w-full text-left text-xs">
+          <table className="w-full min-w-120 text-left text-xs">
             <thead className="sticky top-0 bg-(--surface) text-(--text-secondary)">
               <tr>
-                <th className="pb-2">Month</th>
-                <th className="pb-2 text-right">Total</th>
-                <th className="pb-2 text-right">Observed</th>
-                <th className="pb-2 text-right">Estimated</th>
-                <th className="pb-2 text-right">Heuristic band</th>
+                <th className="pb-2 pr-2 whitespace-nowrap">Month</th>
+                <th className="px-2 pb-2 text-right whitespace-nowrap">Total</th>
+                <th className="px-2 pb-2 text-right whitespace-nowrap">Observed</th>
+                <th className="px-2 pb-2 text-right whitespace-nowrap">Estimated</th>
+                <th className="pb-2 pl-2 text-right whitespace-nowrap">Heuristic band</th>
               </tr>
             </thead>
             <tbody>
               {visible.map((row) => (
                 <tr key={`${row.period}-${row.scale}`} className="border-t border-(--border-color)">
-                  <td className="py-1.5">{String(row.period).slice(0, 10)}</td>
-                  <td className="py-1.5 text-right font-medium">{number(row.value)}</td>
-                  <td className="py-1.5 text-right">{number(row.observed_value)}</td>
-                  <td className="py-1.5 text-right">{number(row.estimated_value)}</td>
-                  <td className="py-1.5 text-right text-(--text-secondary)">
+                  <td className="py-1.5 pr-2 whitespace-nowrap">{String(row.period).slice(0, 10)}</td>
+                  <td className="px-2 py-1.5 text-right font-medium whitespace-nowrap">{number(row.value)}</td>
+                  <td className="px-2 py-1.5 text-right whitespace-nowrap">{number(row.observed_value)}</td>
+                  <td className="px-2 py-1.5 text-right whitespace-nowrap">{number(row.estimated_value)}</td>
+                  <td className="py-1.5 pl-2 text-right text-(--text-secondary) whitespace-nowrap">
                     {number(row.low)} – {number(row.high)}
                   </td>
                 </tr>

@@ -64,9 +64,9 @@ export default function AnalyticsPage() {
   const notes = comparison.data?.notes ?? overview.data?.notes ?? [];
 
   return (
-    <div className="space-y-7">
+    <div className="space-y-5 sm:space-y-7">
       <div>
-        <h2 className="text-2xl font-bold">Analytics</h2>
+        <h2 className="text-xl font-bold sm:text-2xl">Analytics</h2>
         <p className="mt-1 text-sm text-(--text-secondary)">
           Sensor-by-sensor statistics and cross-sensor consistency. Sensors are never
           summed into a single hotspot count.
@@ -86,7 +86,7 @@ export default function AnalyticsPage() {
             {sensors.map((sensor) => (
               <div
                 key={sensor.sensor}
-                className="rounded-xl border border-(--border-color) bg-(--surface) p-5"
+                className="min-w-0 rounded-xl border border-(--border-color) bg-(--surface) p-4 sm:p-5"
               >
                 <div className="flex items-center justify-between">
                   <h3 className="font-semibold">{sensorLabel(sensor.sensor)}</h3>
@@ -116,9 +116,9 @@ export default function AnalyticsPage() {
                     <dt className="text-xs text-(--text-secondary)">Max FRP</dt>
                     <dd className="font-semibold">{decimal(sensor.max_frp_mw)} MW</dd>
                   </div>
-                  <div>
+                  <div className="col-span-2 sm:col-span-1">
                     <dt className="text-xs text-(--text-secondary)">Extent</dt>
-                    <dd className="font-mono text-xs">
+                    <dd className="break-words font-mono text-xs">
                       {decimal(sensor.min_lon, 2)}–{decimal(sensor.max_lon, 2)}°E ·{" "}
                       {decimal(sensor.min_lat, 2)}–{decimal(sensor.max_lat, 2)}°N
                     </dd>
@@ -133,17 +133,20 @@ export default function AnalyticsPage() {
             description={`Matched pairs within the configured radius/time window: ${number(agreement.n_pairs)}. These are cross-sensor consistency metrics, not accuracy against true fire occurrence. Held-out VIIRS reference validation for 2013/2024 is a separate offline step.`}
           >
             {agreement.n_pairs ? (
-              <div className="grid gap-4 sm:grid-cols-3 xl:grid-cols-5">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-5">
                 {[
                   ["Matched pairs", number(agreement.n_pairs)],
                   ["log10 FRP MAE", `${decimal(log10.mae, 3)} dex`],
                   ["log10 FRP RMSE", `${decimal(log10.rmse, 3)} dex`],
                   ["Bias (MODIS − VIIRS)", `${log10.bias_modis_minus_viirs > 0 ? "+" : ""}${decimal(log10.bias_modis_minus_viirs, 3)} dex`],
                   ["Pearson r (log10)", decimal(log10.pearson_r, 3)],
-                ].map(([label, value]) => (
-                  <div key={label} className="rounded-lg bg-(--surface-secondary) p-3">
+                ].map(([label, value], index) => (
+                  <div
+                    key={label}
+                    className={`rounded-lg bg-(--surface-secondary) p-3 ${index === 4 ? "col-span-2 sm:col-span-1" : ""}`}
+                  >
                     <p className="text-[11px] text-(--text-secondary)">{label}</p>
-                    <p className="mt-1 text-lg font-semibold">{value}</p>
+                    <p className="mt-1 break-words text-base font-semibold sm:text-lg">{value}</p>
                   </div>
                 ))}
               </div>
@@ -155,11 +158,11 @@ export default function AnalyticsPage() {
           <section className="grid gap-5 xl:grid-cols-2">
             <Panel title="Monthly detections" description="Counts per sensor per month.">
               {detectionSeries.length ? (
-                <div className="h-72">
+                <div className="h-60 sm:h-72">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={detectionSeries} margin={{ top: 10, right: 10, left: -18, bottom: 0 }}>
+                    <BarChart data={detectionSeries} margin={{ top: 10, right: 10, left: -12, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                      <XAxis dataKey="bucket" tickFormatter={monthLabel} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
+                      <XAxis dataKey="bucket" tickFormatter={monthLabel} minTickGap={20} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
                       <YAxis tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
                       <Tooltip contentStyle={tooltipStyle} labelFormatter={(v) => `${monthLabel(v)} ${String(v).slice(0, 4)}`} />
                       <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -175,11 +178,11 @@ export default function AnalyticsPage() {
 
             <Panel title="Mean FRP per month" description="Instantaneous radiative power (MW). Never summed into energy.">
               {frpSeries.length ? (
-                <div className="h-72">
+                <div className="h-60 sm:h-72">
                   <ResponsiveContainer width="100%" height="100%">
-                    <LineChart data={frpSeries} margin={{ top: 10, right: 10, left: -18, bottom: 0 }}>
+                    <LineChart data={frpSeries} margin={{ top: 10, right: 10, left: -12, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" />
-                      <XAxis dataKey="bucket" tickFormatter={monthLabel} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
+                      <XAxis dataKey="bucket" tickFormatter={monthLabel} minTickGap={20} tick={{ fontSize: 11 }} stroke="var(--text-secondary)" />
                       <YAxis tick={{ fontSize: 11 }} stroke="var(--text-secondary)" unit=" MW" />
                       <Tooltip contentStyle={tooltipStyle} formatter={(value) => `${decimal(value)} MW`} />
                       <Legend wrapperStyle={{ fontSize: 12 }} />
@@ -202,27 +205,27 @@ export default function AnalyticsPage() {
             {regions.loading && <LoadingState />}
             {regions.data?.length ? (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-xs">
+                <table className="w-full min-w-135 text-left text-xs">
                   <thead className="text-(--text-secondary)">
                     <tr className="border-b border-(--border-color)">
-                      <th className="py-2 font-medium">Region</th>
-                      <th className="py-2 font-medium">Bounding box</th>
-                      <th className="py-2 text-right font-medium">Detections</th>
-                      <th className="py-2 text-right font-medium">Mean FRP</th>
-                      <th className="py-2 text-right font-medium">Max FRP</th>
+                      <th className="py-2 pr-2 font-medium whitespace-nowrap">Region</th>
+                      <th className="px-2 py-2 font-medium whitespace-nowrap">Bounding box</th>
+                      <th className="px-2 py-2 text-right font-medium whitespace-nowrap">Detections</th>
+                      <th className="px-2 py-2 text-right font-medium whitespace-nowrap">Mean FRP</th>
+                      <th className="py-2 pl-2 text-right font-medium whitespace-nowrap">Max FRP</th>
                     </tr>
                   </thead>
                   <tbody>
                     {regions.data.map((region) => (
                       <tr key={region.region} className="border-b border-(--border-color)/60 last:border-0">
-                        <td className="py-2 font-semibold">{region.region}</td>
-                        <td className="py-2 font-mono">
+                        <td className="py-2 pr-2 font-semibold whitespace-nowrap">{region.region}</td>
+                        <td className="px-2 py-2 font-mono whitespace-nowrap">
                           {decimal(region.bbox.min_lon, 2)}–{decimal(region.bbox.max_lon, 2)}°E,{" "}
                           {decimal(region.bbox.min_lat, 2)}–{decimal(region.bbox.max_lat, 2)}°N
                         </td>
-                        <td className="py-2 text-right">{number(region.detections)}</td>
-                        <td className="py-2 text-right">{decimal(region.mean_frp_mw)} MW</td>
-                        <td className="py-2 text-right">{decimal(region.max_frp_mw)} MW</td>
+                        <td className="px-2 py-2 text-right whitespace-nowrap">{number(region.detections)}</td>
+                        <td className="px-2 py-2 text-right whitespace-nowrap">{decimal(region.mean_frp_mw)} MW</td>
+                        <td className="py-2 pl-2 text-right whitespace-nowrap">{decimal(region.max_frp_mw)} MW</td>
                       </tr>
                     ))}
                   </tbody>
