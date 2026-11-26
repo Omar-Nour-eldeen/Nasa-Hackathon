@@ -6,6 +6,7 @@ work belongs to the ``harmonizer`` package.
 
 from __future__ import annotations
 
+import os
 from pathlib import Path
 
 from flask import Flask, jsonify, request
@@ -58,6 +59,11 @@ def create_app(config_path: str | Path | None = None) -> Flask:
         (config.get("api") or {}).get("cors_origins")
         or ["http://localhost:5173", "http://127.0.0.1:5173"]
     )
+    extra_origins = os.environ.get("CORS_ORIGINS", "")
+    for item in extra_origins.split(","):
+        cleaned = item.strip().rstrip("/")
+        if cleaned:
+            allowed_origins.add(cleaned)
 
     @app.after_request
     def add_cors_headers(response):
